@@ -104,23 +104,47 @@ ORDER BY `cost` DESC;
 
 
 /* Q9: This time, produce the same result as in Q8, but using a subquery. */
-
+SELECT f.name AS facility_name, CONCAT( firstname, ' ', surname ) AS member_name, 
+    (CASE WHEN m.memid =0 THEN guestcost * slots
+     ELSE membercost * slots END) AS cost, starttime
+FROM Members AS m
+INNER JOIN Bookings AS b ON m.memid = b.memid
+INNER JOIN Facilities AS f ON b.facid = f.facid
+WHERE (SELECT starttime
+       FROM Bookings
+       WHERE CAST(starttime AS DATE) = '2019-9-14')
+    AND CASE WHEN m.memid =0 THEN guestcost * slots
+    ELSE membercost * slots END > 30
+ORDER BY `cost` DESC;
 
 /* PART 2: SQLite
 
 Export the country club data from PHPMyAdmin, and connect to a local SQLite instance from Jupyter notebook 
-for the following questions.  
+for the following questions.
+
 
 QUESTIONS:
-/* Q10: Produce a list of facilities with a total revenue less than 1000.
+
+Q10: Produce a list of facilities with a total revenue less than 1000.
 The output of facility name and total revenue, sorted by revenue. Remember
 that there's a different cost for guests and members! */
+q10 = curs.execute('SELECT name, revenue FROM(SELECT name, SUM(CASE WHEN memid = 0 THEN guestcost * slots ELSE membercost * slots END) AS revenue FROM Bookings INNER JOIN Facilities ON Bookings.facid = Facilities.facid GROUP BY name) AS inner_table WHERE revenue < 1000 ORDER BY revenue')
+q10 = curs.fetchall()
+print(q10)
 
 /* Q11: Produce a report of members and who recommended them in alphabetic surname,firstname order */
-
+list11 = curs.execute('SELECT surname || ", " || firstname AS name, recommendedby FROM Members WHERE recommendedby > 0 ORDER BY name')
+list11 = curs.fetchall()
+print(list11)
 
 /* Q12: Find the facilities with their usage by member, but not guests */
-
+q12 = curs.execute('SELECT f.name, firstname|| " "|| surname as member_name, sum(slots), COUNT(f.name) FROM Facilities as f  INNER JOIN Bookings as b  ON f.facid = b.facid  INNER JOIN Members as m  ON b.memid = m.memid  WHERE m.memid > 0 GROUP BY f.name, member_name')
+q12 = curs.fetchall()
+print(q12)
+q12df = pd.DataFrame(q12)
+q12df
 
 /* Q13: Find the facilities usage by month, but not guests */
-
+q13 = curs.execute('SELECT f.name, firstname|| " "|| surname as member_name, strftime("%m", starttime), sum(slots), COUNT(f.name) FROM Facilities as f  INNER JOIN Bookings as b  ON f.facid = b.facid  INNER JOIN Members as m  ON b.memid = m.memid  WHERE m.memid > 0 GROUP BY f.name, member_name, strftime("%m", starttime)')
+q13 = curs.fetchall()
+print(q13)
